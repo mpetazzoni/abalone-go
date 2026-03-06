@@ -279,6 +279,8 @@ html, body {
     font-weight: 600;
     color: #aaa;
     transition: color 0.3s;
+    min-width: 10em;
+    text-align: center;
 }
 
 .status-turn.my-turn {
