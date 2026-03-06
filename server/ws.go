@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/mpetazzoni/abalone-go/game"
@@ -102,7 +103,25 @@ func (s *Server) handleJoin(conn *websocket.Conn, code string) {
 }
 
 func (s *Server) readLoop(conn *websocket.Conn, room *Room, player *Player) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Heartbeat: ping every 30s to detect stale connections
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := conn.Ping(ctx); err != nil {
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	for {
 		_, data, err := conn.Read(ctx)
 		if err != nil {
