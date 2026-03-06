@@ -105,17 +105,17 @@ NW = ( 0, -1)    SE = ( 0, +1)
 
 ## Todo
 
-- [ ] **Phase 1: Game Engine**
-  - [ ] Define board types and hex coordinate helpers
-  - [ ] Implement board initialization (standard starting position)
-  - [ ] Implement move validation (in-line moves)
-  - [ ] Implement move validation (broadside moves)
-  - [ ] Implement sumito (pushing) logic
-  - [ ] Implement push-off detection
-  - [ ] Implement win condition check
-  - [ ] Write comprehensive unit tests for all move types
+- [x] **Phase 1: Game Engine**
+  - [x] Define board types and hex coordinate helpers
+  - [x] Implement board initialization (standard starting position)
+  - [x] Implement move validation (in-line moves)
+  - [x] Implement move validation (broadside moves)
+  - [x] Implement sumito (pushing) logic
+  - [x] Implement push-off detection
+  - [x] Implement win condition check
+  - [x] Write comprehensive unit tests for all move types
 - [ ] **Phase 2: Server**
-  - [ ] Set up Go module and project structure
+  - [x] Set up Go module and project structure
   - [ ] Implement room/lobby system (create game, join game)
   - [ ] WebSocket connection handling
   - [ ] Wire game engine to WebSocket message handler
