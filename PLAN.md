@@ -141,6 +141,11 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] Move flow (valid, wrong turn, invalid move)
   - [x] Disconnect notification
   - [x] Invalid action handling
+- [x] **Phase 6: UX Fixes**
+  - [x] Fix move animation to use uniform direction shift
+  - [x] Add push-off marble animation (slide off-board + captured tray pulse)
+  - [x] Move direction arrows to fixed positions outside the board
+  - [x] Fix status bar width to prevent layout shift on turn change
 
 ---
 
