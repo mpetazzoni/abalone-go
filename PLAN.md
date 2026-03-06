@@ -120,14 +120,14 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] WebSocket connection handling
   - [x] Wire game engine to WebSocket message handler
   - [x] Handle disconnection/reconnection gracefully
-- [ ] **Phase 3: Frontend**
-  - [ ] HTML page with SVG hex board
-  - [ ] Render board state from server
-  - [ ] Marble selection UI (click to select 1-3 marbles)
-  - [ ] Direction selection / move submission
-  - [ ] Turn indicator, captured marble display
-  - [ ] Game over screen
-  - [ ] Join/host lobby UI
+- [x] **Phase 3: Frontend**
+  - [x] HTML page with SVG hex board
+  - [x] Render board state from server
+  - [x] Marble selection UI (click to select 1-3 marbles)
+  - [x] Direction selection / move submission
+  - [x] Turn indicator, captured marble display
+  - [x] Game over screen
+  - [x] Join/host lobby UI
 - [ ] **Phase 4: Polish**
   - [ ] Move animation
   - [ ] Sound effects (optional)
