@@ -45,6 +45,7 @@
     let selectedMarbles = []; // array of {q, r}
     let gameCode = null;
     let gameOver = false;
+    var animationClaimed = {}; // tracks which old positions have been claimed by animations
 
     // SVG dimensions
     const SVG_WIDTH = 520;
@@ -226,17 +227,19 @@
                 break;
 
             case 'state':
+                var oldBoard = gameState ? Object.assign({}, gameState.board) : null;
                 gameState = msg;
                 selectedMarbles = [];
-                renderBoard();
+                renderBoard(oldBoard);
                 updateStatus();
                 break;
 
             case 'game_over':
+                var oldBoard = gameState ? Object.assign({}, gameState.board) : null;
                 gameState = msg;
                 gameOver = true;
                 selectedMarbles = [];
-                renderBoard();
+                renderBoard(oldBoard);
                 updateStatus();
                 showGameOver(msg.winner);
                 break;
@@ -452,7 +455,9 @@
     // SVG Board Rendering
     // ---------------------
 
-    function renderBoard() {
+    function renderBoard(oldBoard) {
+        animationClaimed = {};
+
         // Clear SVG
         while (svgBoard.firstChild) {
             svgBoard.removeChild(svgBoard.firstChild);
@@ -485,14 +490,35 @@
             }
         }
 
-        // Render marbles
+        // Render marbles with animation
         if (gameState && gameState.board) {
+            var newPositions = {};
             for (var key in gameState.board) {
+                newPositions[key] = gameState.board[key];
+            }
+
+            for (var key in newPositions) {
                 var parts = key.split(',');
                 var mq = parseInt(parts[0]);
                 var mr = parseInt(parts[1]);
-                var val = gameState.board[key];
-                renderMarble(mq, mr, val);
+                var val = newPositions[key];
+
+                var fromPos = null;
+                if (oldBoard) {
+                    // If same marble was already at this position, no animation needed
+                    if (oldBoard[key] === val) {
+                        renderMarble(mq, mr, val);
+                        continue;
+                    }
+                    // Find closest marble of same color in old state that isn't in new at same pos
+                    fromPos = findAnimationSource(key, val, oldBoard, newPositions);
+                }
+
+                if (fromPos) {
+                    renderMarbleAnimated(mq, mr, val, fromPos.q, fromPos.r);
+                } else {
+                    renderMarble(mq, mr, val);
+                }
             }
         }
 
@@ -595,6 +621,99 @@
 
         g.appendChild(marble);
         svgBoard.appendChild(g);
+    }
+
+    function findAnimationSource(newKey, color, oldBoard, newPositions) {
+        // Find a marble of the same color in oldBoard that is NOT at the same position in newBoard
+        var bestKey = null;
+        var bestDist = Infinity;
+
+        var newParts = newKey.split(',');
+        var nq = parseInt(newParts[0]);
+        var nr = parseInt(newParts[1]);
+
+        for (var oldKey in oldBoard) {
+            if (oldBoard[oldKey] !== color) continue;
+            if (animationClaimed[oldKey]) continue;
+            // If this old position still has the same color marble in new state, skip
+            if (newPositions[oldKey] === color) continue;
+
+            var oldParts = oldKey.split(',');
+            var oq = parseInt(oldParts[0]);
+            var or_ = parseInt(oldParts[1]);
+            var dist = Math.abs(nq - oq) + Math.abs(nr - or_);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestKey = oldKey;
+            }
+        }
+
+        if (bestKey) {
+            animationClaimed[bestKey] = true;
+            var parts = bestKey.split(',');
+            return { q: parseInt(parts[0]), r: parseInt(parts[1]) };
+        }
+        return null;
+    }
+
+    function renderMarbleAnimated(toQ, toR, value, fromQ, fromR) {
+        var fromPos = hexToPixel(fromQ, fromR);
+        var toPos = hexToPixel(toQ, toR);
+        var marbleR = HEX_SIZE * 0.50;
+        var selected = isSelected(toQ, toR);
+
+        var g = createSVG('g', { 'class': 'marble-group' });
+
+        // Calculate translation
+        var dx = fromPos.x - toPos.x;
+        var dy = fromPos.y - toPos.y;
+
+        // Selection ring
+        if (selected) {
+            var ring = createSVG('circle', {
+                cx: toPos.x, cy: toPos.y, r: marbleR + 4,
+                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '3',
+                'class': 'selection-ring',
+            });
+            g.appendChild(ring);
+        }
+
+        // Shadow
+        var shadow = createSVG('circle', {
+            cx: toPos.x + 1, cy: toPos.y + 2, r: marbleR,
+            fill: 'rgba(0,0,0,0.3)',
+        });
+        g.appendChild(shadow);
+
+        // Marble
+        var gradId = value === 1 ? 'url(#grad-black)' : 'url(#grad-white)';
+        var marble = createSVG('circle', {
+            cx: toPos.x, cy: toPos.y, r: marbleR,
+            fill: gradId,
+            stroke: value === 1 ? '#111' : '#ccc',
+            'stroke-width': '1',
+            'class': 'marble ' + (value === 1 ? 'black' : 'white'),
+            'data-q': toQ, 'data-r': toR,
+        });
+
+        marble.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleSelection(toQ, toR);
+        });
+        g.appendChild(marble);
+
+        // Apply CSS animation via transform
+        g.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+        g.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
+        svgBoard.appendChild(g);
+
+        // Trigger animation on next frame
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                g.style.transform = 'translate(0, 0)';
+            });
+        });
     }
 
     function renderDirectionArrows() {
