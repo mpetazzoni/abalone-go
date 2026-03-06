@@ -46,7 +46,7 @@
     let selectedMarbles = []; // array of {q, r}
     let gameCode = null;
     let gameOver = false;
-    var animationClaimed = {}; // tracks which old positions have been claimed by animations
+    // (animation state is computed locally inside renderBoard)
 
     // SVG dimensions
     const SVG_WIDTH = 520;
@@ -482,8 +482,6 @@
     // ---------------------
 
     function renderBoard(oldBoard) {
-        animationClaimed = {};
-
         // Clear SVG
         while (svgBoard.firstChild) {
             svgBoard.removeChild(svgBoard.firstChild);
@@ -531,35 +529,36 @@
             }
         }
 
+        // Compute move direction from board diff (for animation)
+        var moveDir = null;
+        var newPositions = (gameState && gameState.board) ? gameState.board : {};
+
+        if (oldBoard) {
+            moveDir = detectMoveDirection(oldBoard, newPositions);
+        }
+
         // Render marbles with animation
         if (gameState && gameState.board) {
-            var newPositions = {};
-            for (var key in gameState.board) {
-                newPositions[key] = gameState.board[key];
-            }
-
             for (var key in newPositions) {
                 var parts = key.split(',');
                 var mq = parseInt(parts[0]);
                 var mr = parseInt(parts[1]);
                 var val = newPositions[key];
 
-                var fromPos = null;
                 if (oldBoard) {
-                    // If same marble was already at this position, no animation needed
+                    // If same marble was already at this position, no animation
                     if (oldBoard[key] === val) {
                         renderMarble(mq, mr, val);
                         continue;
                     }
-                    // Find closest marble of same color in old state that isn't in new at same pos
-                    fromPos = findAnimationSource(key, val, oldBoard, newPositions);
+                    // New position for this color — animate from source using direction
+                    if (moveDir) {
+                        renderMarbleAnimated(mq, mr, val, mq - moveDir.dq, mr - moveDir.dr);
+                        continue;
+                    }
                 }
 
-                if (fromPos) {
-                    renderMarbleAnimated(mq, mr, val, fromPos.q, fromPos.r);
-                } else {
-                    renderMarble(mq, mr, val);
-                }
+                renderMarble(mq, mr, val);
             }
         }
 
@@ -567,6 +566,49 @@
         if (selectedMarbles.length > 0) {
             renderDirectionArrows();
         }
+    }
+
+    // Detect the uniform move direction by comparing old and new board states.
+    // Returns {dq, dr} or null if no direction can be determined.
+    function detectMoveDirection(oldBoard, newPositions) {
+        // Collect new and vacated positions for each color
+        for (var ci = 1; ci <= 2; ci++) {
+            var newPos = [];
+            var vacated = {};
+            var vacatedCount = 0;
+
+            for (var key in newPositions) {
+                if (newPositions[key] === ci && oldBoard[key] !== ci) {
+                    var parts = key.split(',');
+                    newPos.push({ q: parseInt(parts[0]), r: parseInt(parts[1]) });
+                }
+            }
+            for (var key in oldBoard) {
+                if (oldBoard[key] === ci && newPositions[key] !== ci) {
+                    vacated[key] = true;
+                    vacatedCount++;
+                }
+            }
+
+            if (newPos.length === 0) continue;
+
+            // Try each of the 6 directions
+            for (var di = 0; di < DIRECTIONS.length; di++) {
+                var dir = DIRECTIONS[di];
+                var match = true;
+                for (var ni = 0; ni < newPos.length; ni++) {
+                    var srcKey = (newPos[ni].q - dir.dq) + ',' + (newPos[ni].r - dir.dr);
+                    if (!vacated[srcKey]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match && newPos.length === vacatedCount) {
+                    return { dq: dir.dq, dr: dir.dr };
+                }
+            }
+        }
+        return null;
     }
 
     function renderBoardBackground() {
@@ -702,39 +744,6 @@
 
         g.appendChild(marble);
         svgBoard.appendChild(g);
-    }
-
-    function findAnimationSource(newKey, color, oldBoard, newPositions) {
-        // Find a marble of the same color in oldBoard that is NOT at the same position in newBoard
-        var bestKey = null;
-        var bestDist = Infinity;
-
-        var newParts = newKey.split(',');
-        var nq = parseInt(newParts[0]);
-        var nr = parseInt(newParts[1]);
-
-        for (var oldKey in oldBoard) {
-            if (oldBoard[oldKey] !== color) continue;
-            if (animationClaimed[oldKey]) continue;
-            // If this old position still has the same color marble in new state, skip
-            if (newPositions[oldKey] === color) continue;
-
-            var oldParts = oldKey.split(',');
-            var oq = parseInt(oldParts[0]);
-            var or_ = parseInt(oldParts[1]);
-            var dist = Math.abs(nq - oq) + Math.abs(nr - or_);
-            if (dist < bestDist) {
-                bestDist = dist;
-                bestKey = oldKey;
-            }
-        }
-
-        if (bestKey) {
-            animationClaimed[bestKey] = true;
-            var parts = bestKey.split(',');
-            return { q: parseInt(parts[0]), r: parseInt(parts[1]) };
-        }
-        return null;
     }
 
     function renderMarbleAnimated(toQ, toR, value, fromQ, fromR) {
