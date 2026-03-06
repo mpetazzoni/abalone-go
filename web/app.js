@@ -129,20 +129,28 @@
     // ---------------------
 
     function showScreen(name) {
-        screenLobby.classList.add('hidden');
-        screenWaiting.classList.add('hidden');
-        screenGame.classList.add('hidden');
+        var screens = [screenLobby, screenWaiting, screenGame];
+        var target = null;
 
         switch (name) {
-            case 'lobby':
-                screenLobby.classList.remove('hidden');
-                break;
-            case 'waiting':
-                screenWaiting.classList.remove('hidden');
-                break;
-            case 'game':
-                screenGame.classList.remove('hidden');
-                break;
+            case 'lobby': target = screenLobby; break;
+            case 'waiting': target = screenWaiting; break;
+            case 'game': target = screenGame; break;
+        }
+
+        screens.forEach(function(s) {
+            if (s !== target) {
+                s.classList.add('hidden');
+                s.classList.remove('screen-visible');
+            }
+        });
+
+        if (target) {
+            target.classList.remove('hidden');
+            // Trigger fade-in on next frame
+            requestAnimationFrame(function() {
+                target.classList.add('screen-visible');
+            });
         }
     }
 
@@ -232,6 +240,10 @@
                 selectedMarbles = [];
                 renderBoard(oldBoard);
                 updateStatus();
+                var statusBar = document.querySelector('.status-bar');
+                statusBar.classList.remove('turn-flash');
+                void statusBar.offsetWidth; // force reflow
+                statusBar.classList.add('turn-flash');
                 break;
 
             case 'game_over':
@@ -269,18 +281,31 @@
         statusColor.textContent = 'You are ' + colorIcon + ' ' + capitalize(myColor);
 
         var isMyTurn = gameState.turn === myColor;
-        statusTurn.textContent = isMyTurn ? '🟢 Your turn' : '⏳ Opponent\'s turn';
+        statusTurn.textContent = isMyTurn ? 'Your turn' : 'Opponent\'s turn';
         statusTurn.className = 'status-turn' + (isMyTurn ? ' my-turn' : '');
 
         var capB = gameState.captured ? gameState.captured.black : 0;
         var capW = gameState.captured ? gameState.captured.white : 0;
-        statusCaptured.innerHTML =
-            '<span class="cap-label">Captured:</span> ' +
-            '<span class="cap-black">⚫ ' + capB + '/6</span>' +
-            '<span class="cap-sep">|</span>' +
-            '<span class="cap-white">⚪ ' + capW + '/6</span>';
 
+        statusCaptured.innerHTML = buildCapturedTray(capB, capW);
         statusMessage.textContent = '';
+    }
+
+    function buildCapturedTray(capBlack, capWhite) {
+        var html = '<span class="cap-tray">';
+        // Black captured (by white)
+        for (var i = 0; i < 6; i++) {
+            var filled = i < capBlack;
+            html += '<span class="cap-marble cap-marble-black' + (filled ? ' filled' : '') + '"></span>';
+        }
+        html += '<span class="cap-sep">|</span>';
+        // White captured (by black)
+        for (var i = 0; i < 6; i++) {
+            var filled = i < capWhite;
+            html += '<span class="cap-marble cap-marble-white' + (filled ? ' filled' : '') + '"></span>';
+        }
+        html += '</span>';
+        return html;
     }
 
     function showStatusMessage(text, isError) {
@@ -467,17 +492,32 @@
         var defs = createSVG('defs');
         svgBoard.appendChild(defs);
 
-        // Black marble gradient
-        var blackGrad = createRadialGradient('grad-black', COLOR_BLACK_MARBLE_SHINE, COLOR_BLACK_MARBLE, '35%', '35%');
+        // Black marble gradient — 3 stops for depth
+        var blackGrad = createSVG('radialGradient', {
+            id: 'grad-black', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
+        });
+        blackGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#777' }));
+        blackGrad.appendChild(createSVG('stop', { offset: '50%', 'stop-color': '#333' }));
+        blackGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#111' }));
         defs.appendChild(blackGrad);
 
-        // White marble gradient
-        var whiteGrad = createRadialGradient('grad-white', COLOR_WHITE_MARBLE_SHINE, COLOR_WHITE_MARBLE, '35%', '35%');
+        // White marble gradient — 3 stops for depth
+        var whiteGrad = createSVG('radialGradient', {
+            id: 'grad-white', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
+        });
+        whiteGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#fff' }));
+        whiteGrad.appendChild(createSVG('stop', { offset: '40%', 'stop-color': '#eee' }));
+        whiteGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#bbb' }));
         defs.appendChild(whiteGrad);
 
         // Selected highlight gradient
         var selGrad = createRadialGradient('grad-selected', 'rgba(255,215,0,0.4)', 'rgba(255,215,0,0)', '0%', '0%');
         defs.appendChild(selGrad);
+
+        // Board glow filter
+        var glowFilter = createSVG('filter', { id: 'board-glow', x: '-20%', y: '-20%', width: '140%', height: '140%' });
+        glowFilter.appendChild(createSVG('feGaussianBlur', { 'in': 'SourceGraphic', stdDeviation: '8' }));
+        defs.appendChild(glowFilter);
 
         // Board background (large hex shape)
         renderBoardBackground();
@@ -536,6 +576,16 @@
             var angle = Math.PI / 180 * (60 * i + 30);
             corners.push(CENTER_X + bgSize * Math.cos(angle) + ',' + (CENTER_Y + bgSize * Math.sin(angle)));
         }
+
+        // Glow layer behind the board
+        var glowBg = createSVG('polygon', {
+            points: corners.join(' '),
+            fill: '#3a7a22',
+            opacity: '0.15',
+            filter: 'url(#board-glow)',
+        });
+        svgBoard.appendChild(glowBg);
+
         var bg = createSVG('polygon', {
             points: corners.join(' '),
             fill: COLOR_BOARD_BG,
@@ -548,12 +598,21 @@
     function renderCell(q, r) {
         var pos = hexToPixel(q, r);
         var cellSize = HEX_SIZE * 0.88;
+        var cellR = cellSize * 0.62;
 
-        // Draw cell as a circle (pit/slot on the board)
+        // Outer rim (lighter edge for 3D pit effect)
+        var rim = createSVG('circle', {
+            cx: pos.x, cy: pos.y - 1, r: cellR,
+            fill: '#4a8a2e',
+            opacity: '0.5',
+        });
+        svgBoard.appendChild(rim);
+
+        // Main pit
         var cell = createSVG('circle', {
             cx: pos.x,
             cy: pos.y,
-            r: cellSize * 0.62,
+            r: cellR,
             fill: COLOR_CELL,
             stroke: COLOR_CELL_STROKE,
             'stroke-width': '1',
@@ -567,25 +626,46 @@
         });
 
         svgBoard.appendChild(cell);
+
+        // Inner shadow (darker center for depth)
+        var innerShadow = createSVG('circle', {
+            cx: pos.x, cy: pos.y + 1, r: cellR * 0.85,
+            fill: '#2a5014',
+            opacity: '0.4',
+            'pointer-events': 'none',
+        });
+        svgBoard.appendChild(innerShadow);
     }
 
     function renderMarble(q, r, value) {
         var pos = hexToPixel(q, r);
         var marbleR = HEX_SIZE * 0.50;
         var selected = isSelected(q, r);
+        var isInteractive = !gameOver && gameState && gameState.turn === myColor &&
+            ((myColor === 'black' && value === 1) || (myColor === 'white' && value === 2));
 
         // Marble group
         var g = createSVG('g', { 'class': 'marble-group', 'data-q': q, 'data-r': r });
 
-        // Selection ring (drawn first, behind marble)
+        // Selection glow (drawn first, behind marble)
         if (selected) {
-            var ring = createSVG('circle', {
-                cx: pos.x,
-                cy: pos.y,
-                r: marbleR + 4,
+            // Outer glow
+            var glow = createSVG('circle', {
+                cx: pos.x, cy: pos.y, r: marbleR + 8,
                 fill: 'none',
                 stroke: COLOR_SELECTED,
-                'stroke-width': '3',
+                'stroke-width': '6',
+                opacity: '0.3',
+                'class': 'selection-glow',
+            });
+            g.appendChild(glow);
+
+            // Inner ring
+            var ring = createSVG('circle', {
+                cx: pos.x, cy: pos.y, r: marbleR + 3,
+                fill: 'none',
+                stroke: COLOR_SELECTED,
+                'stroke-width': '2.5',
                 'class': 'selection-ring',
             });
             g.appendChild(ring);
@@ -609,7 +689,7 @@
             fill: gradId,
             stroke: value === 1 ? '#111' : '#ccc',
             'stroke-width': '1',
-            'class': 'marble ' + (value === 1 ? 'black' : 'white'),
+            'class': 'marble ' + (value === 1 ? 'black' : 'white') + (isInteractive ? ' interactive' : ''),
             'data-q': q,
             'data-r': r,
         });
@@ -661,6 +741,8 @@
         var toPos = hexToPixel(toQ, toR);
         var marbleR = HEX_SIZE * 0.50;
         var selected = isSelected(toQ, toR);
+        var isInteractive = !gameOver && gameState && gameState.turn === myColor &&
+            ((myColor === 'black' && value === 1) || (myColor === 'white' && value === 2));
 
         var g = createSVG('g', { 'class': 'marble-group' });
 
@@ -668,11 +750,18 @@
         var dx = fromPos.x - toPos.x;
         var dy = fromPos.y - toPos.y;
 
-        // Selection ring
+        // Selection glow
         if (selected) {
+            var glow = createSVG('circle', {
+                cx: toPos.x, cy: toPos.y, r: marbleR + 8,
+                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '6',
+                opacity: '0.3', 'class': 'selection-glow',
+            });
+            g.appendChild(glow);
+
             var ring = createSVG('circle', {
-                cx: toPos.x, cy: toPos.y, r: marbleR + 4,
-                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '3',
+                cx: toPos.x, cy: toPos.y, r: marbleR + 3,
+                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '2.5',
                 'class': 'selection-ring',
             });
             g.appendChild(ring);
@@ -692,7 +781,7 @@
             fill: gradId,
             stroke: value === 1 ? '#111' : '#ccc',
             'stroke-width': '1',
-            'class': 'marble ' + (value === 1 ? 'black' : 'white'),
+            'class': 'marble ' + (value === 1 ? 'black' : 'white') + (isInteractive ? ' interactive' : ''),
             'data-q': toQ, 'data-r': toR,
         });
 
@@ -745,10 +834,12 @@
             var bgCircle = createSVG('circle', {
                 cx: ax,
                 cy: ay,
-                r: 12,
+                r: 13,
                 fill: COLOR_ARROW,
-                stroke: '#cc8400',
+                'fill-opacity': '0.85',
+                stroke: '#fff',
                 'stroke-width': '1.5',
+                'stroke-opacity': '0.5',
                 'class': 'arrow-bg',
             });
             arrowG.appendChild(bgCircle);
@@ -769,9 +860,11 @@
 
             arrowG.addEventListener('mouseenter', function () {
                 bgCircle.setAttribute('fill', COLOR_ARROW_HOVER);
+                bgCircle.setAttribute('fill-opacity', '1');
             });
             arrowG.addEventListener('mouseleave', function () {
                 bgCircle.setAttribute('fill', COLOR_ARROW);
+                bgCircle.setAttribute('fill-opacity', '0.85');
             });
 
             svgBoard.appendChild(arrowG);
