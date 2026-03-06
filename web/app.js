@@ -184,6 +184,7 @@
         selectedMarbles = [];
         gameCode = null;
         gameOver = false;
+        prevCaptured = { black: 0, white: 0 };
         gameOverOverlay.classList.add('hidden');
         showScreen('lobby');
     }
