@@ -14,13 +14,14 @@
     const SVG_NS = 'http://www.w3.org/2000/svg';
 
     // Six hex directions in axial coordinates
+    // Angles match flat-top hex layout pixel positions from hexToPixel()
     const DIRECTIONS = [
-        { dq: 1, dr: 0, name: 'E', angle: 0 },
-        { dq: 1, dr: -1, name: 'NE', angle: -60 },
-        { dq: 0, dr: -1, name: 'NW', angle: -120 },
-        { dq: -1, dr: 0, name: 'W', angle: 180 },
-        { dq: -1, dr: 1, name: 'SW', angle: 120 },
-        { dq: 0, dr: 1, name: 'SE', angle: 60 },
+        { dq: 1, dr: 0, name: 'E', angle: 30 },
+        { dq: 1, dr: -1, name: 'NE', angle: -30 },
+        { dq: 0, dr: -1, name: 'NW', angle: -90 },
+        { dq: -1, dr: 0, name: 'W', angle: 210 },
+        { dq: -1, dr: 1, name: 'SW', angle: 150 },
+        { dq: 0, dr: 1, name: 'SE', angle: 90 },
     ];
 
     // Colors
