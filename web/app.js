@@ -241,6 +241,14 @@
                 showGameOver(msg.winner);
                 break;
 
+            case 'opponent_disconnected':
+                gameOver = true;
+                showStatusMessage(msg.message || 'Your opponent disconnected.', true);
+                gameOverText.textContent = 'Opponent Disconnected';
+                gameOverOverlay.className = 'game-over-overlay';
+                gameOverOverlay.classList.remove('hidden');
+                break;
+
             case 'error':
                 showStatusMessage(msg.error || msg.message || 'Unknown error', true);
                 break;
