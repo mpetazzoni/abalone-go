@@ -817,7 +817,7 @@
         cx /= selectedMarbles.length;
         cy /= selectedMarbles.length;
 
-        var arrowDist = HEX_SIZE * 1.6;
+        var arrowDist = HEX_SIZE * 2.3;
 
         DIRECTIONS.forEach(function (dir) {
             // Arrow position: offset from centroid in the hex direction
