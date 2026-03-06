@@ -146,6 +146,10 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] Add push-off marble animation (slide off-board + captured tray pulse)
   - [x] Move direction arrows to fixed positions outside the board
   - [x] Fix status bar width to prevent layout shift on turn change
+- [x] **Phase 7: CI & Release**
+  - [x] GitHub Actions CI workflow (fmt, vet, test on push/PR)
+  - [x] GitHub Actions release workflow (cross-compile + GitHub release on v* tag)
+  - [x] Tag v0.1.0
 
 ---
 

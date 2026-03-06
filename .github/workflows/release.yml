@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Build binaries
+        run: |
+          for target in linux/amd64 linux/arm64 darwin/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            output="abalone-${os}-${arch}"
+            echo "Building ${output}..."
+            GOOS="${os}" GOARCH="${arch}" go build -o "${output}" -ldflags="-s -w" .
+          done
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            abalone-linux-amd64
+            abalone-linux-arm64
+            abalone-darwin-arm64
