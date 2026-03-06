@@ -46,6 +46,7 @@
     let selectedMarbles = []; // array of {q, r}
     let gameCode = null;
     let gameOver = false;
+    let prevCaptured = { black: 0, white: 0 }; // previous captured counts for pulse detection
     // (animation state is computed locally inside renderBoard)
 
     // SVG dimensions
@@ -288,22 +289,28 @@
         var capB = gameState.captured ? gameState.captured.black : 0;
         var capW = gameState.captured ? gameState.captured.white : 0;
 
-        statusCaptured.innerHTML = buildCapturedTray(capB, capW);
+        var newCapBlack = capB > prevCaptured.black;
+        var newCapWhite = capW > prevCaptured.white;
+        prevCaptured = { black: capB, white: capW };
+
+        statusCaptured.innerHTML = buildCapturedTray(capB, capW, newCapBlack, newCapWhite);
         statusMessage.textContent = '';
     }
 
-    function buildCapturedTray(capBlack, capWhite) {
+    function buildCapturedTray(capBlack, capWhite, pulseBlack, pulseWhite) {
         var html = '<span class="cap-tray">';
         // Black captured (by white)
         for (var i = 0; i < 6; i++) {
             var filled = i < capBlack;
-            html += '<span class="cap-marble cap-marble-black' + (filled ? ' filled' : '') + '"></span>';
+            var justCaptured = filled && pulseBlack && i === capBlack - 1;
+            html += '<span class="cap-marble cap-marble-black' + (filled ? ' filled' : '') + (justCaptured ? ' just-captured' : '') + '"></span>';
         }
         html += '<span class="cap-sep">|</span>';
         // White captured (by black)
         for (var i = 0; i < 6; i++) {
             var filled = i < capWhite;
-            html += '<span class="cap-marble cap-marble-white' + (filled ? ' filled' : '') + '"></span>';
+            var justCaptured = filled && pulseWhite && i === capWhite - 1;
+            html += '<span class="cap-marble cap-marble-white' + (filled ? ' filled' : '') + (justCaptured ? ' just-captured' : '') + '"></span>';
         }
         html += '</span>';
         return html;
@@ -560,6 +567,34 @@
 
                 renderMarble(mq, mr, val);
             }
+
+            // Render push-off animations for marbles that left the board
+            if (oldBoard && moveDir) {
+                for (var oldKey in oldBoard) {
+                    var oldVal = oldBoard[oldKey];
+                    // Marble was on board before but isn't now (with same color)
+                    if (newPositions[oldKey] === oldVal) continue;
+                    // Check it's not just a marble that moved (its position is not a source for any new marble)
+                    var wasMoved = false;
+                    for (var newKey in newPositions) {
+                        if (newPositions[newKey] === oldVal && oldBoard[newKey] !== oldVal) {
+                            var np = newKey.split(',');
+                            var srcKey = (parseInt(np[0]) - moveDir.dq) + ',' + (parseInt(np[1]) - moveDir.dr);
+                            if (srcKey === oldKey) {
+                                wasMoved = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (wasMoved) continue;
+                    // This marble was pushed off the board
+                    var oParts = oldKey.split(',');
+                    var oq = parseInt(oParts[0]);
+                    var or_ = parseInt(oParts[1]);
+                    var offPixel = hexToPixel(oq + moveDir.dq, or_ + moveDir.dr);
+                    renderMarblePushOff(oq, or_, offPixel.x, offPixel.y, oldVal);
+                }
+            }
         }
 
         // Render direction arrows if marbles are selected
@@ -811,6 +846,50 @@
         requestAnimationFrame(function() {
             requestAnimationFrame(function() {
                 g.style.transform = 'translate(0, 0)';
+            });
+        });
+    }
+
+    function renderMarblePushOff(fromQ, fromR, toPixelX, toPixelY, value) {
+        var fromPos = hexToPixel(fromQ, fromR);
+        var marbleR = HEX_SIZE * 0.50;
+
+        var g = createSVG('g', { 'class': 'marble-group push-off' });
+
+        // Shadow
+        var shadow = createSVG('circle', {
+            cx: fromPos.x + 1, cy: fromPos.y + 2, r: marbleR,
+            fill: 'rgba(0,0,0,0.3)',
+        });
+        g.appendChild(shadow);
+
+        // Marble
+        var gradId = value === 1 ? 'url(#grad-black)' : 'url(#grad-white)';
+        var marble = createSVG('circle', {
+            cx: fromPos.x, cy: fromPos.y, r: marbleR,
+            fill: gradId,
+            stroke: value === 1 ? '#111' : '#ccc',
+            'stroke-width': '1',
+            'class': 'marble ' + (value === 1 ? 'black' : 'white'),
+        });
+        g.appendChild(marble);
+
+        // Start at origin, animate to off-board position with fade + shrink
+        var dx = toPixelX - fromPos.x;
+        var dy = toPixelY - fromPos.y;
+
+        g.style.transform = 'translate(0, 0) scale(1)';
+        g.style.opacity = '1';
+        g.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease-out';
+        g.style.transformOrigin = fromPos.x + 'px ' + fromPos.y + 'px';
+
+        svgBoard.appendChild(g);
+
+        // Trigger animation on next frame
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                g.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.3)';
+                g.style.opacity = '0';
             });
         });
     }
