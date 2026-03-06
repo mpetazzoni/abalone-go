@@ -266,7 +266,7 @@ html, body {
     border-radius: 10px;
     margin-bottom: 1rem;
     width: 100%;
-    max-width: 540px;
+    max-width: 580px;
 }
 
 .status-color {
@@ -410,9 +410,20 @@ html, body {
 }
 
 .direction-arrow {
-    cursor: pointer;
-    animation: arrow-appear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-origin: center;
+    transition: opacity 0.25s ease;
+}
+
+.direction-arrow.disabled {
+    opacity: 0.15;
+    pointer-events: none;
+    cursor: default;
+}
+
+.direction-arrow.enabled {
+    cursor: pointer;
+    opacity: 1;
+    animation: arrow-appear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes arrow-appear {

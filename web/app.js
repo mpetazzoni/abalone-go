@@ -50,10 +50,11 @@
     // (animation state is computed locally inside renderBoard)
 
     // SVG dimensions
-    const SVG_WIDTH = 520;
-    const SVG_HEIGHT = 480;
+    const SVG_WIDTH = 580;
+    const SVG_HEIGHT = 540;
     const CENTER_X = SVG_WIDTH / 2;
     const CENTER_Y = SVG_HEIGHT / 2;
+    const ARROW_RADIUS = HEX_SIZE * 8.5;
 
     // ---------------------
     // DOM references (set on init)
@@ -597,10 +598,8 @@
             }
         }
 
-        // Render direction arrows if marbles are selected
-        if (selectedMarbles.length > 0) {
-            renderDirectionArrows();
-        }
+        // Always render direction arrows at fixed positions around the board
+        renderDirectionArrows();
     }
 
     // Detect the uniform move direction by comparing old and new board states.
@@ -895,26 +894,16 @@
     }
 
     function renderDirectionArrows() {
-        // Compute centroid of selected marbles
-        var cx = 0, cy = 0;
-        selectedMarbles.forEach(function (m) {
-            var pos = hexToPixel(m.q, m.r);
-            cx += pos.x;
-            cy += pos.y;
-        });
-        cx /= selectedMarbles.length;
-        cy /= selectedMarbles.length;
-
-        var arrowDist = HEX_SIZE * 2.3;
+        var enabled = selectedMarbles.length > 0;
 
         DIRECTIONS.forEach(function (dir) {
-            // Arrow position: offset from centroid in the hex direction
+            // Fixed position at ARROW_RADIUS from board center
             var angleRad = dir.angle * Math.PI / 180;
-            var ax = cx + arrowDist * Math.cos(angleRad);
-            var ay = cy + arrowDist * Math.sin(angleRad);
+            var ax = CENTER_X + ARROW_RADIUS * Math.cos(angleRad);
+            var ay = CENTER_Y + ARROW_RADIUS * Math.sin(angleRad);
 
             var arrowG = createSVG('g', {
-                'class': 'direction-arrow',
+                'class': 'direction-arrow ' + (enabled ? 'enabled' : 'disabled'),
                 'data-dq': dir.dq,
                 'data-dr': dir.dr,
             });
@@ -942,19 +931,21 @@
             });
             arrowG.appendChild(tri);
 
-            arrowG.addEventListener('click', function (e) {
-                e.stopPropagation();
-                sendMove(dir.dq, dir.dr);
-            });
+            if (enabled) {
+                arrowG.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    sendMove(dir.dq, dir.dr);
+                });
 
-            arrowG.addEventListener('mouseenter', function () {
-                bgCircle.setAttribute('fill', COLOR_ARROW_HOVER);
-                bgCircle.setAttribute('fill-opacity', '1');
-            });
-            arrowG.addEventListener('mouseleave', function () {
-                bgCircle.setAttribute('fill', COLOR_ARROW);
-                bgCircle.setAttribute('fill-opacity', '0.85');
-            });
+                arrowG.addEventListener('mouseenter', function () {
+                    bgCircle.setAttribute('fill', COLOR_ARROW_HOVER);
+                    bgCircle.setAttribute('fill-opacity', '1');
+                });
+                arrowG.addEventListener('mouseleave', function () {
+                    bgCircle.setAttribute('fill', COLOR_ARROW);
+                    bgCircle.setAttribute('fill-opacity', '0.85');
+                });
+            }
 
             svgBoard.appendChild(arrowG);
         });
