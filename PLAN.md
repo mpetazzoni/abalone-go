@@ -128,11 +128,11 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] Turn indicator, captured marble display
   - [x] Game over screen
   - [x] Join/host lobby UI
-- [ ] **Phase 4: Polish**
-  - [ ] Move animation
-  - [ ] Sound effects (optional)
-  - [ ] Mobile-friendly layout
-  - [ ] Deployment (single binary serves everything)
+- [x] **Phase 4: Polish**
+  - [x] Move animation
+  - [x] Sound effects (optional)
+  - [x] Mobile-friendly layout
+  - [x] Deployment (single binary serves everything)
 
 ---
 
