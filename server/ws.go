@@ -108,17 +108,32 @@ func (s *Server) readLoop(conn *websocket.Conn, room *Room, player *Player) {
 		_, data, err := conn.Read(ctx)
 		if err != nil {
 			log.Printf("Player disconnected from %s: %v", room.Code, err)
-			// Notify other player
 			room.mu.Lock()
+			// Clear this player's slot
+			for i, p := range room.Players {
+				if p == player {
+					room.Players[i] = nil
+					break
+				}
+			}
+			// Notify remaining player
 			for _, p := range room.Players {
-				if p != nil && p != player && p.Conn != nil {
+				if p != nil && p.Conn != nil {
 					sendJSON(p.Conn, ServerMessage{
-						Type:    "error",
-						Message: "Opponent disconnected",
+						Type:    "opponent_disconnected",
+						Message: "Your opponent has disconnected",
 					})
 				}
 			}
+			// Check if room is empty
+			bothNil := room.Players[0] == nil && room.Players[1] == nil
+			code := room.Code
 			room.mu.Unlock()
+
+			if bothNil {
+				s.rooms.RemoveRoom(code)
+				log.Printf("Room %s removed (empty)", code)
+			}
 			return
 		}
 
