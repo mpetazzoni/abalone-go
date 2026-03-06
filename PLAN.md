@@ -100,6 +100,7 @@ NW = ( 0, -1)    SE = ( 0, +1)
 | 7 | Marble selection UX | Click marbles → click direction arrow | Explicit, easy to implement; revisit after testing |
 | 8 | Frontend embedding | `//go:embed` | Single binary deployment, no external files |
 | 9 | Game codes | Two random words (adjective+noun) | Fun, memorable ("angry-panda", "swift-volcano") |
+| 10 | Git workflow | Commit directly to `main` | Small solo project, no branches/PRs needed for now |
 
 ---
 
@@ -133,6 +134,13 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] Sound effects (optional)
   - [x] Mobile-friendly layout
   - [x] Deployment (single binary serves everything)
+- [x] **Phase 5: Server E2E Tests**
+  - [x] Test helpers (setup server, WS connect, read/send message)
+  - [x] Create game flow
+  - [x] Join game flow (valid, invalid code, full game)
+  - [x] Move flow (valid, wrong turn, invalid move)
+  - [x] Disconnect notification
+  - [x] Invalid action handling
 
 ---
 
