@@ -113,9 +113,9 @@ func colorName(c game.Cell) string {
 	}
 }
 
-// broadcastStateLocked sends the current game state to all connected players.
-// The caller must hold room.mu.
-func (r *Room) broadcastStateLocked() {
+// broadcastState prepares and sends the current game state to all connected players.
+// The caller must hold room.mu, which will be released before network I/O.
+func (r *Room) broadcastState() {
 	board := make(map[string]int)
 	for hex, cell := range r.Game.Board.Cells {
 		if cell != game.Empty {
@@ -142,13 +142,22 @@ func (r *Room) broadcastStateLocked() {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		log.Printf("Error marshaling state: %v", err)
+		r.mu.Unlock()
 		return
 	}
 
+	// Collect connections under lock
+	var conns []*websocket.Conn
 	for _, p := range r.Players {
 		if p != nil && p.Conn != nil {
-			_ = p.Conn.Write(context.Background(), websocket.MessageText, data)
+			conns = append(conns, p.Conn)
 		}
+	}
+
+	// Release lock before network I/O
+	r.mu.Unlock()
+	for _, c := range conns {
+		_ = c.Write(context.Background(), websocket.MessageText, data)
 	}
 }
 

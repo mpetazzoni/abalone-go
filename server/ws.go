@@ -95,8 +95,7 @@ func (s *Server) handleJoin(conn *websocket.Conn, code string) {
 
 	// Send initial board state to both
 	room.mu.Lock()
-	room.broadcastStateLocked()
-	room.mu.Unlock()
+	room.broadcastState() // unlocks room.mu internally
 
 	// Enter read loop for this player
 	s.readLoop(conn, room, player)
@@ -154,10 +153,10 @@ func (s *Server) readLoop(conn *websocket.Conn, room *Room, player *Player) {
 
 func (s *Server) handleMove(room *Room, player *Player, msg ClientMessage) {
 	room.mu.Lock()
-	defer room.mu.Unlock()
 
 	// Verify it's this player's turn
 	if room.Game.Turn != player.Color {
+		room.mu.Unlock()
 		sendError(player.Conn, "Not your turn")
 		return
 	}
@@ -166,6 +165,7 @@ func (s *Server) handleMove(room *Room, player *Player, msg ClientMessage) {
 	marbles := make([]game.Hex, len(msg.Marbles))
 	for i, m := range msg.Marbles {
 		if len(m) != 2 {
+			room.mu.Unlock()
 			sendError(player.Conn, "Invalid marble coordinates")
 			return
 		}
@@ -174,6 +174,7 @@ func (s *Server) handleMove(room *Room, player *Player, msg ClientMessage) {
 
 	// Parse direction
 	if len(msg.Dir) != 2 {
+		room.mu.Unlock()
 		sendError(player.Conn, "Invalid direction")
 		return
 	}
@@ -182,10 +183,11 @@ func (s *Server) handleMove(room *Room, player *Player, msg ClientMessage) {
 	// Apply the move
 	err := game.ApplyMove(room.Game, marbles, dir)
 	if err != nil {
+		room.mu.Unlock()
 		sendError(player.Conn, err.Error())
 		return
 	}
 
-	// Broadcast updated state (lock already held)
-	room.broadcastStateLocked()
+	// broadcastState unlocks room.mu internally
+	room.broadcastState()
 }
