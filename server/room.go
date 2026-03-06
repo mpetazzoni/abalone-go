@@ -82,6 +82,23 @@ func (rm *RoomManager) RemoveRoom(code string) {
 	delete(rm.rooms, code)
 }
 
+// RemoveRoomIfEmpty removes a room only if both player slots are nil.
+func (rm *RoomManager) RemoveRoomIfEmpty(code string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	room, exists := rm.rooms[code]
+	if !exists {
+		return
+	}
+	room.mu.Lock()
+	empty := room.Players[0] == nil && room.Players[1] == nil
+	room.mu.Unlock()
+	if empty {
+		delete(rm.rooms, code)
+		log.Printf("Room %s removed (empty)", code)
+	}
+}
+
 // ClientMessage represents a message from the client
 type ClientMessage struct {
 	Type    string  `json:"type"`

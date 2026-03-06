@@ -143,15 +143,9 @@ func (s *Server) readLoop(conn *websocket.Conn, room *Room, player *Player) {
 					})
 				}
 			}
-			// Check if room is empty
-			bothNil := room.Players[0] == nil && room.Players[1] == nil
 			code := room.Code
 			room.mu.Unlock()
-
-			if bothNil {
-				s.rooms.RemoveRoom(code)
-				log.Printf("Room %s removed (empty)", code)
-			}
+			s.rooms.RemoveRoomIfEmpty(code)
 			return
 		}
 
