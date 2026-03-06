@@ -114,12 +114,12 @@ NW = ( 0, -1)    SE = ( 0, +1)
   - [x] Implement push-off detection
   - [x] Implement win condition check
   - [x] Write comprehensive unit tests for all move types
-- [ ] **Phase 2: Server**
+- [x] **Phase 2: Server**
   - [x] Set up Go module and project structure
-  - [ ] Implement room/lobby system (create game, join game)
-  - [ ] WebSocket connection handling
-  - [ ] Wire game engine to WebSocket message handler
-  - [ ] Handle disconnection/reconnection gracefully
+  - [x] Implement room/lobby system (create game, join game)
+  - [x] WebSocket connection handling
+  - [x] Wire game engine to WebSocket message handler
+  - [x] Handle disconnection/reconnection gracefully
 - [ ] **Phase 3: Frontend**
   - [ ] HTML page with SVG hex board
   - [ ] Render board state from server
