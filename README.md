@@ -17,12 +17,20 @@ A web-based implementation of the classic hexagonal marble-pushing strategy boar
 ## Quick Start
 
 ```sh
-go build -o abalone .
-./abalone              # starts on :8080
+make build
+make run               # starts on :8080
 ./abalone -addr :3000  # custom port
 ```
 
 Open `http://localhost:8080` in your browser. One player clicks **Host Game** to create a room and get a game code. The other player enters the code and clicks **Join Game**. That's it — you're playing.
+
+### Development
+
+```sh
+make test              # run all tests
+make lint              # check formatting + go vet
+make help              # show all make targets
+```
 
 ## How to Play
 
@@ -43,22 +51,27 @@ Open `http://localhost:8080` in your browser. One player clicks **Host Game** to
 
 ```
 abalone-go/
-├── main.go           # Entry point, embeds frontend, starts server
+├── main.go              # Entry point, embeds frontend, starts server
 ├── game/
-│   ├── board.go      # Board types, hex coordinates, initial position
-│   ├── game.go       # Game state, turns, win condition
-│   ├── move.go       # Move validation and execution
-│   └── game_test.go  # Tests for all game logic
+│   ├── board.go         # Board types, hex coordinates, initial position
+│   ├── game.go          # Game state, turns, win condition
+│   ├── move.go          # Move validation and execution
+│   └── game_test.go     # Tests for all game logic
 ├── server/
-│   ├── server.go     # HTTP routes, static file serving
-│   ├── room.go       # Room/lobby management, game codes
-│   ├── ws.go         # WebSocket upgrade and message handling
-│   └── wordlist.go   # Word lists for game code generation
+│   ├── server.go        # HTTP routes, static file serving
+│   ├── room.go          # Room/lobby management, game codes
+│   ├── ws.go            # WebSocket upgrade and message handling
+│   ├── wordlist.go      # Word lists for game code generation
+│   └── server_test.go   # End-to-end WebSocket tests
 └── web/
-    ├── index.html    # Single page app
-    ├── style.css     # Board and UI styling
-    └── app.js        # Game client, SVG rendering, WebSocket
+    ├── index.html       # Single page app
+    ├── style.css        # Board and UI styling
+    └── app.js           # Game client, SVG rendering, WebSocket
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
