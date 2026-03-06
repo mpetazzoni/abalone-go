@@ -1,0 +1,509 @@
+/* Abalone Game Styles */
+
+/* ---- Reset & Base ---- */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Utility ---- */
+
+.hidden {
+    display: none !important;
+}
+
+/* ---- Screen Container ---- */
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+/* ---- Lobby Screen ---- */
+
+.lobby-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #f0f0f0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 2px 20px rgba(100, 100, 255, 0.3);
+}
+
+.lobby-subtitle {
+    font-size: 1.1rem;
+    color: #8888aa;
+    margin-bottom: 2.5rem;
+}
+
+.lobby-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 320px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    text-decoration: none;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: #4a6fa5;
+    color: #fff;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background: #5a82bf;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: #8888cc;
+    border: 1px solid #3a3a5e;
+    width: 100%;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaaadd;
+}
+
+.btn-small {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    color: #555577;
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #2a2a4e;
+}
+
+.join-group {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.input-code {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #3a3a5e;
+    border-radius: 8px;
+    background: #16162b;
+    color: #e0e0e0;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-code:focus {
+    border-color: #4a6fa5;
+}
+
+.input-code::placeholder {
+    color: #555577;
+}
+
+.btn-join {
+    padding: 0.75rem 1.5rem;
+    background: #3a7a4e;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.btn-join:hover {
+    background: #4a9a5e;
+}
+
+.lobby-footer {
+    margin-top: 2rem;
+}
+
+/* ---- Waiting Screen ---- */
+
+.waiting-content {
+    text-align: center;
+}
+
+.waiting-label {
+    font-size: 1rem;
+    color: #8888aa;
+    margin-bottom: 0.75rem;
+}
+
+.code-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.code-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffd700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    user-select: all;
+}
+
+.btn-copy {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background: #2a2a4e;
+    color: #aaa;
+    border: 1px solid #3a3a5e;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-copy:hover {
+    background: #3a3a5e;
+    color: #ddd;
+}
+
+.waiting-dots {
+    font-size: 1.1rem;
+    color: #8888aa;
+}
+
+.waiting-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+    100% { content: ''; }
+}
+
+.btn-cancel {
+    margin-top: 2rem;
+    background: transparent;
+    color: #aa5555;
+    border: 1px solid #553333;
+}
+
+.btn-cancel:hover {
+    background: rgba(170, 85, 85, 0.1);
+}
+
+/* ---- Game Screen ---- */
+
+.game-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+/* Status bar */
+.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 540px;
+}
+
+.status-color {
+    font-size: 0.95rem;
+    color: #aaa;
+}
+
+.status-turn {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #aaa;
+    transition: color 0.3s;
+}
+
+.status-turn.my-turn {
+    color: #5cdb5c;
+}
+
+.status-captured {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cap-label {
+    color: #777;
+}
+
+.cap-black,
+.cap-white {
+    font-weight: 600;
+}
+
+.cap-sep {
+    color: #444;
+}
+
+.status-message {
+    font-size: 0.85rem;
+    color: #aaa;
+    min-height: 1.25rem;
+    text-align: center;
+}
+
+.status-message.error {
+    color: #ff6b6b;
+}
+
+/* Board container */
+.board-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#svg-board {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* SVG element styles */
+.cell {
+    cursor: pointer;
+    transition: fill 0.15s;
+}
+
+.cell:hover {
+    fill: #4a8a2e;
+}
+
+.marble {
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.marble:hover {
+    filter: brightness(1.1);
+}
+
+.selection-ring {
+    animation: pulse-ring 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+    0%, 100% { stroke-opacity: 1; }
+    50% { stroke-opacity: 0.5; }
+}
+
+.direction-arrow {
+    cursor: pointer;
+}
+
+.arrow-bg {
+    transition: fill 0.15s, r 0.15s;
+}
+
+.direction-arrow:hover .arrow-bg {
+    r: 14;
+}
+
+/* ---- Game Over Overlay ---- */
+
+.game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 30, 0.85);
+    z-index: 100;
+    animation: fade-in 0.5s;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.game-over-text {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.5);
+}
+
+.game-over-overlay.win .game-over-text {
+    color: #ffd700;
+}
+
+.game-over-overlay.lose .game-over-text {
+    color: #ff6b6b;
+}
+
+.btn-play-again {
+    background: #4a6fa5;
+    color: #fff;
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+}
+
+.btn-play-again:hover {
+    background: #5a82bf;
+}
+
+/* ---- Rules Section ---- */
+
+.rules-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a1a2e;
+    overflow-y: auto;
+    z-index: 50;
+    padding: 2rem;
+}
+
+.rules-content {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.rules-content h2 {
+    font-size: 2rem;
+    color: #f0f0f0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.rules-content h3 {
+    font-size: 1.2rem;
+    color: #aabbdd;
+    margin: 1.5rem 0 0.5rem;
+    border-bottom: 1px solid #2a2a4e;
+    padding-bottom: 0.25rem;
+}
+
+.rules-content p {
+    color: #bbb;
+    margin-bottom: 0.75rem;
+}
+
+.rules-content ol,
+.rules-content ul {
+    color: #bbb;
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.rules-content li {
+    margin-bottom: 0.4rem;
+}
+
+.rules-content strong {
+    color: #ddd;
+}
+
+.rules-content em {
+    color: #aabbdd;
+}
+
+.btn-rules-back {
+    display: block;
+    margin: 2rem auto 0;
+    background: #2a2a4e;
+    color: #aaa;
+    border: 1px solid #3a3a5e;
+}
+
+.btn-rules-back:hover {
+    background: #3a3a5e;
+    color: #ddd;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 600px) {
+    .lobby-title {
+        font-size: 2.5rem;
+    }
+
+    .code-value {
+        font-size: 1.8rem;
+    }
+
+    .status-bar {
+        gap: 0.75rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .game-over-text {
+        font-size: 2.2rem;
+    }
+
+    .rules-section {
+        padding: 1rem;
+    }
+}

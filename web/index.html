@@ -1,4 +1,132 @@
 <!DOCTYPE html>
-<html><head><title>Abalone</title></head>
-<body><h1>Abalone - Coming Soon</h1></body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abalone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ==================== Lobby Screen ==================== -->
+    <div id="screen-lobby" class="screen hidden">
+        <h1 class="lobby-title">Abalone</h1>
+        <p class="lobby-subtitle">The marble-pushing strategy game</p>
+
+        <div class="lobby-actions">
+            <button id="btn-host" class="btn btn-primary">Host Game</button>
+
+            <div class="divider">or join a game</div>
+
+            <div class="join-group">
+                <input type="text" id="input-code" class="input-code"
+                       placeholder="Enter game code" autocomplete="off" spellcheck="false">
+                <button id="btn-join" class="btn btn-join">Join</button>
+            </div>
+        </div>
+
+        <div class="lobby-footer">
+            <button id="btn-rules" class="btn btn-secondary btn-small">How to Play</button>
+        </div>
+    </div>
+
+    <!-- ==================== Waiting Screen ==================== -->
+    <div id="screen-waiting" class="screen hidden">
+        <div class="waiting-content">
+            <p class="waiting-label">Share this code with your opponent:</p>
+            <div class="code-box">
+                <span id="code-value" class="code-value">---</span>
+                <button id="btn-copy-code" class="btn-copy">Copy</button>
+            </div>
+            <p class="waiting-dots">Waiting for opponent</p>
+            <button class="btn btn-cancel btn-small" onclick="document.getElementById('btn-play-again').click()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ==================== Game Screen ==================== -->
+    <div id="screen-game" class="screen hidden">
+        <div class="game-layout">
+            <div class="status-bar">
+                <span id="status-color" class="status-color"></span>
+                <span id="status-turn" class="status-turn"></span>
+                <span id="status-captured" class="status-captured"></span>
+            </div>
+            <div id="status-message" class="status-message"></div>
+
+            <div class="board-container">
+                <svg id="svg-board" width="520" height="480" viewBox="0 0 520 480"></svg>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="game-over-overlay hidden">
+            <div id="game-over-text" class="game-over-text"></div>
+            <button id="btn-play-again" class="btn btn-play-again">Play Again</button>
+        </div>
+    </div>
+
+    <!-- ==================== Rules Section (overlay) ==================== -->
+    <div id="screen-rules" class="rules-section hidden">
+        <div class="rules-content">
+            <h2>How to Play Abalone</h2>
+
+            <h3>Objective</h3>
+            <p>Push <strong>6</strong> of your opponent's marbles off the board to win.</p>
+
+            <h3>The Board</h3>
+            <p>
+                Abalone is played on a hexagonal board with <strong>61 spaces</strong>.
+                Each player starts with <strong>14 marbles</strong> arranged on opposite
+                sides of the board. Black moves first.
+            </p>
+
+            <h3>Taking Turns</h3>
+            <p>
+                On your turn, select <strong>1, 2, or 3</strong> of your marbles and move
+                them one space in any of the 6 directions.
+            </p>
+
+            <h3>Types of Moves</h3>
+            <ul>
+                <li>
+                    <strong>In-line:</strong> Move 1, 2, or 3 marbles along their shared axis.
+                    The front marble moves into the next space, and the others follow.
+                </li>
+                <li>
+                    <strong>Broadside:</strong> Move 2 or 3 marbles sideways together.
+                    All destination spaces must be empty.
+                </li>
+            </ul>
+
+            <h3>Pushing (Sumito)</h3>
+            <p>
+                When moving in-line, if your group outnumbers adjacent opponent marbles
+                in the direction of movement, you push them. Legal pushes:
+                <strong>2 vs 1</strong>, <strong>3 vs 1</strong>, or <strong>3 vs 2</strong>.
+            </p>
+            <p>
+                Pushed marbles move one space in the push direction. If a pushed marble
+                goes off the edge of the board, it's <em>captured</em>!
+            </p>
+
+            <h3>Controls</h3>
+            <ol>
+                <li>Click your marbles to select them (1–3 marbles, must be in a line)</li>
+                <li>Direction arrows appear around your selection</li>
+                <li>Click an arrow to make your move</li>
+            </ol>
+            <p>Click a selected marble again to deselect it.</p>
+
+            <h3>Winning</h3>
+            <p>
+                The first player to push <strong>6</strong> of their opponent's marbles
+                off the board wins the game!
+            </p>
+
+            <button id="btn-rules-back" class="btn btn-rules-back">Back</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>
