@@ -28,10 +28,6 @@
     const COLOR_BOARD_BG = '#2d5016';
     const COLOR_CELL = '#3a6b1e';
     const COLOR_CELL_STROKE = '#2d5016';
-    const COLOR_BLACK_MARBLE = '#2a2a2a';
-    const COLOR_BLACK_MARBLE_SHINE = '#555555';
-    const COLOR_WHITE_MARBLE = '#f0f0f0';
-    const COLOR_WHITE_MARBLE_SHINE = '#ffffff';
     const COLOR_SELECTED = '#ffd700';
     const COLOR_ARROW = '#ffa500';
     const COLOR_ARROW_HOVER = '#ffcc00';
@@ -61,9 +57,10 @@
     // ---------------------
 
     let screenLobby, screenWaiting, screenGame, screenRules;
-    let codeDisplay, codeValue;
+    let codeValue;
     let btnHost, btnJoin, inputCode;
     let svgBoard;
+    let boardDynamic;
     let statusTurn, statusColor, statusCaptured, statusMessage;
     let gameOverOverlay, gameOverText, btnPlayAgain;
 
@@ -80,7 +77,6 @@
         screenGame = document.getElementById('screen-game');
         screenRules = document.getElementById('screen-rules');
 
-        codeDisplay = document.getElementById('code-display');
         codeValue = document.getElementById('code-value');
 
         btnHost = document.getElementById('btn-host');
@@ -117,7 +113,7 @@
         document.getElementById('btn-copy-code').addEventListener('click', function () {
             if (gameCode) {
                 navigator.clipboard.writeText(gameCode).then(function () {
-                    var btn = document.getElementById('btn-copy-code');
+                    const btn = document.getElementById('btn-copy-code');
                     btn.textContent = 'Copied!';
                     setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
                 });
@@ -135,7 +131,45 @@
             if (shiftHeld) { shiftHeld = false; renderBoard(); }
         });
 
+        setupBoard();
         showScreen('lobby');
+    }
+
+    function setupBoard() {
+        // Static defs: gradients and filters (created once, never change)
+        const defs = createSVG('defs');
+
+        // Black marble gradient
+        const blackGrad = createSVG('radialGradient', {
+            id: 'grad-black', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
+        });
+        blackGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#777' }));
+        blackGrad.appendChild(createSVG('stop', { offset: '50%', 'stop-color': '#333' }));
+        blackGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#111' }));
+        defs.appendChild(blackGrad);
+
+        // White marble gradient
+        const whiteGrad = createSVG('radialGradient', {
+            id: 'grad-white', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
+        });
+        whiteGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#fff' }));
+        whiteGrad.appendChild(createSVG('stop', { offset: '40%', 'stop-color': '#eee' }));
+        whiteGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#bbb' }));
+        defs.appendChild(whiteGrad);
+
+        // Board glow filter
+        const glowFilter = createSVG('filter', { id: 'board-glow', x: '-20%', y: '-20%', width: '140%', height: '140%' });
+        glowFilter.appendChild(createSVG('feGaussianBlur', { 'in': 'SourceGraphic', stdDeviation: '8' }));
+        defs.appendChild(glowFilter);
+
+        svgBoard.appendChild(defs);
+
+        // Static board background
+        renderBoardBackground();
+
+        // Dynamic layer for cells, marbles, arrows
+        boardDynamic = createSVG('g', { 'class': 'board-dynamic' });
+        svgBoard.appendChild(boardDynamic);
     }
 
     // ---------------------
@@ -143,8 +177,8 @@
     // ---------------------
 
     function showScreen(name) {
-        var screens = [screenLobby, screenWaiting, screenGame];
-        var target = null;
+        const screens = [screenLobby, screenWaiting, screenGame];
+        let target = null;
 
         switch (name) {
             case 'lobby': target = screenLobby; break;
@@ -177,7 +211,7 @@
     }
 
     function joinGame() {
-        var code = inputCode.value.trim().toLowerCase();
+        const code = inputCode.value.trim().toLowerCase();
         if (!code) {
             showStatusMessage('Please enter a game code.', true);
             return;
@@ -210,8 +244,8 @@
             ws = null;
         }
 
-        var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        var url = protocol + '//' + location.host + '/ws?action=' + action;
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let url = protocol + '//' + location.host + '/ws?action=' + action;
         if (code) {
             url += '&code=' + encodeURIComponent(code);
         }
@@ -249,20 +283,21 @@
                 showScreen('game');
                 break;
 
-            case 'state':
-                var oldBoard = gameState ? Object.assign({}, gameState.board) : null;
+            case 'state': {
+                const oldBoard = gameState ? Object.assign({}, gameState.board) : null;
                 gameState = msg;
                 selectedMarbles = [];
                 renderBoard(oldBoard);
                 updateStatus();
-                var statusBar = document.querySelector('.status-bar');
+                const statusBar = document.querySelector('.status-bar');
                 statusBar.classList.remove('turn-flash');
                 void statusBar.offsetWidth; // force reflow
                 statusBar.classList.add('turn-flash');
                 break;
+            }
 
-            case 'game_over':
-                var oldBoard = gameState ? Object.assign({}, gameState.board) : null;
+            case 'game_over': {
+                const oldBoard = gameState ? Object.assign({}, gameState.board) : null;
                 gameState = msg;
                 gameOver = true;
                 selectedMarbles = [];
@@ -270,6 +305,7 @@
                 updateStatus();
                 showGameOver(msg.winner);
                 break;
+            }
 
             case 'opponent_disconnected':
                 gameOver = true;
@@ -292,18 +328,18 @@
     function updateStatus() {
         if (!gameState) return;
 
-        var colorIcon = myColor === 'black' ? '⚫' : '⚪';
+        const colorIcon = myColor === 'black' ? '⚫' : '⚪';
         statusColor.textContent = 'You are ' + colorIcon + ' ' + capitalize(myColor);
 
-        var isMyTurn = gameState.turn === myColor;
+        const isMyTurn = gameState.turn === myColor;
         statusTurn.textContent = isMyTurn ? 'Your turn' : 'Opponent\'s turn';
         statusTurn.className = 'status-turn' + (isMyTurn ? ' my-turn' : '');
 
-        var capB = gameState.captured ? gameState.captured.black : 0;
-        var capW = gameState.captured ? gameState.captured.white : 0;
+        const capB = gameState.captured ? gameState.captured.black : 0;
+        const capW = gameState.captured ? gameState.captured.white : 0;
 
-        var newCapBlack = capB > prevCaptured.black;
-        var newCapWhite = capW > prevCaptured.white;
+        const newCapBlack = capB > prevCaptured.black;
+        const newCapWhite = capW > prevCaptured.white;
         prevCaptured = { black: capB, white: capW };
 
         statusCaptured.innerHTML = buildCapturedTray(capB, capW, newCapBlack, newCapWhite);
@@ -311,18 +347,18 @@
     }
 
     function buildCapturedTray(capBlack, capWhite, pulseBlack, pulseWhite) {
-        var html = '<span class="cap-tray">';
+        let html = '<span class="cap-tray">';
         // Black captured (by white)
-        for (var i = 0; i < 6; i++) {
-            var filled = i < capBlack;
-            var justCaptured = filled && pulseBlack && i === capBlack - 1;
+        for (let i = 0; i < 6; i++) {
+            const filled = i < capBlack;
+            const justCaptured = filled && pulseBlack && i === capBlack - 1;
             html += '<span class="cap-marble cap-marble-black' + (filled ? ' filled' : '') + (justCaptured ? ' just-captured' : '') + '"></span>';
         }
         html += '<span class="cap-sep">|</span>';
         // White captured (by black)
-        for (var i = 0; i < 6; i++) {
-            var filled = i < capWhite;
-            var justCaptured = filled && pulseWhite && i === capWhite - 1;
+        for (let i = 0; i < 6; i++) {
+            const filled = i < capWhite;
+            const justCaptured = filled && pulseWhite && i === capWhite - 1;
             html += '<span class="cap-marble cap-marble-white' + (filled ? ' filled' : '') + (justCaptured ? ' just-captured' : '') + '"></span>';
         }
         html += '</span>';
@@ -340,7 +376,7 @@
     }
 
     function showGameOver(winner) {
-        var isWinner = winner === myColor;
+        const isWinner = winner === myColor;
         gameOverText.textContent = isWinner ? 'You win!' : capitalize(winner) + ' wins!';
         gameOverOverlay.className = 'game-over-overlay ' + (isWinner ? 'win' : 'lose');
         gameOverOverlay.classList.remove('hidden');
@@ -355,22 +391,9 @@
     // ---------------------
 
     function hexToPixel(q, r) {
-        var x = HEX_SIZE * (3 / 2 * q);
-        var y = HEX_SIZE * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
+        const x = HEX_SIZE * (3 / 2 * q);
+        const y = HEX_SIZE * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
         return { x: x + CENTER_X, y: y + CENTER_Y };
-    }
-
-    // Generate the 6 vertices of a flat-top hexagon
-    function hexCorners(cx, cy, size) {
-        var corners = [];
-        for (var i = 0; i < 6; i++) {
-            var angle = Math.PI / 180 * (60 * i);
-            corners.push({
-                x: cx + size * Math.cos(angle),
-                y: cy + size * Math.sin(angle)
-            });
-        }
-        return corners;
     }
 
     function hexKey(q, r) {
@@ -399,12 +422,10 @@
     }
 
     function toggleSelection(q, r) {
-        // Can't select if not our turn or game over
         if (!gameState || gameState.turn !== myColor || gameOver) return;
 
-        // Can only select our own marbles
-        var val = getCellValue(q, r);
-        var myVal = myColor === 'black' ? 1 : 2;
+        const val = getCellValue(q, r);
+        const myVal = myColor === 'black' ? 1 : 2;
         if (val !== myVal) {
             selectedMarbles = [];
             renderBoard();
@@ -412,45 +433,27 @@
         }
 
         if (!shiftHeld) {
-            // Plain click: single-select (or deselect if already the only one)
             if (isSelected(q, r) && selectedMarbles.length === 1) {
                 selectedMarbles = [];
             } else {
                 selectedMarbles = [{ q: q, r: r }];
             }
         } else {
-            // Shift+click: multi-select logic
-            // If already selected, deselect
             if (isSelected(q, r)) {
-                selectedMarbles = selectedMarbles.filter(function (m) {
+                selectedMarbles = selectedMarbles.filter(function(m) {
                     return m.q !== q || m.r !== r;
                 });
-                renderBoard();
-                return;
-            }
-
-            // Try adding to selection
-            var next = selectedMarbles.concat([{ q: q, r: r }]);
-
-            if (next.length === 1) {
-                selectedMarbles = next;
-            } else if (next.length === 2) {
-                if (areAdjacent(next[0], next[1])) {
-                    selectedMarbles = next;
-                } else {
-                    // Start new selection
-                    selectedMarbles = [{ q: q, r: r }];
-                }
-            } else if (next.length === 3) {
-                if (areCollinear(next)) {
-                    selectedMarbles = sortMarbles(next);
-                } else {
-                    // Start new selection
-                    selectedMarbles = [{ q: q, r: r }];
-                }
             } else {
-                // Already have 3, start new selection
-                selectedMarbles = [{ q: q, r: r }];
+                const next = selectedMarbles.concat([{ q: q, r: r }]);
+                if (next.length === 1) {
+                    selectedMarbles = next;
+                } else if (next.length === 2) {
+                    selectedMarbles = areAdjacent(next[0], next[1]) ? next : [{ q: q, r: r }];
+                } else if (next.length === 3) {
+                    selectedMarbles = areCollinear(next) ? sortMarbles(next) : [{ q: q, r: r }];
+                } else {
+                    selectedMarbles = [{ q: q, r: r }];
+                }
             }
         }
 
@@ -458,8 +461,8 @@
     }
 
     function areAdjacent(a, b) {
-        var dq = b.q - a.q;
-        var dr = b.r - a.r;
+        const dq = b.q - a.q;
+        const dr = b.r - a.r;
         return DIRECTIONS.some(function (d) {
             return d.dq === dq && d.dr === dr;
         });
@@ -470,11 +473,11 @@
         if (marbles.length === 2) return areAdjacent(marbles[0], marbles[1]);
 
         // For 3 marbles: sort them and check they form a line
-        var sorted = sortMarbles(marbles);
-        var dq1 = sorted[1].q - sorted[0].q;
-        var dr1 = sorted[1].r - sorted[0].r;
-        var dq2 = sorted[2].q - sorted[1].q;
-        var dr2 = sorted[2].r - sorted[1].r;
+        const sorted = sortMarbles(marbles);
+        const dq1 = sorted[1].q - sorted[0].q;
+        const dr1 = sorted[1].r - sorted[0].r;
+        const dq2 = sorted[2].q - sorted[1].q;
+        const dr2 = sorted[2].r - sorted[1].r;
 
         // Must be same direction and adjacent
         if (dq1 !== dq2 || dr1 !== dr2) return false;
@@ -496,7 +499,7 @@
     function sendMove(dq, dr) {
         if (!ws || selectedMarbles.length === 0) return;
 
-        var msg = {
+        const msg = {
             type: 'move',
             marbles: selectedMarbles.map(function (m) { return [m.q, m.r]; }),
             direction: [dq, dr]
@@ -512,56 +515,22 @@
     // ---------------------
 
     function renderBoard(oldBoard) {
-        // Clear SVG
-        while (svgBoard.firstChild) {
-            svgBoard.removeChild(svgBoard.firstChild);
+        // Clear dynamic layer only (defs and background are static)
+        while (boardDynamic.firstChild) {
+            boardDynamic.removeChild(boardDynamic.firstChild);
         }
 
-        // Create defs for gradients
-        var defs = createSVG('defs');
-        svgBoard.appendChild(defs);
-
-        // Black marble gradient — 3 stops for depth
-        var blackGrad = createSVG('radialGradient', {
-            id: 'grad-black', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
-        });
-        blackGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#777' }));
-        blackGrad.appendChild(createSVG('stop', { offset: '50%', 'stop-color': '#333' }));
-        blackGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#111' }));
-        defs.appendChild(blackGrad);
-
-        // White marble gradient — 3 stops for depth
-        var whiteGrad = createSVG('radialGradient', {
-            id: 'grad-white', cx: '50%', cy: '50%', r: '50%', fx: '35%', fy: '30%',
-        });
-        whiteGrad.appendChild(createSVG('stop', { offset: '0%', 'stop-color': '#fff' }));
-        whiteGrad.appendChild(createSVG('stop', { offset: '40%', 'stop-color': '#eee' }));
-        whiteGrad.appendChild(createSVG('stop', { offset: '100%', 'stop-color': '#bbb' }));
-        defs.appendChild(whiteGrad);
-
-        // Selected highlight gradient
-        var selGrad = createRadialGradient('grad-selected', 'rgba(255,215,0,0.4)', 'rgba(255,215,0,0)', '0%', '0%');
-        defs.appendChild(selGrad);
-
-        // Board glow filter
-        var glowFilter = createSVG('filter', { id: 'board-glow', x: '-20%', y: '-20%', width: '140%', height: '140%' });
-        glowFilter.appendChild(createSVG('feGaussianBlur', { 'in': 'SourceGraphic', stdDeviation: '8' }));
-        defs.appendChild(glowFilter);
-
-        // Board background (large hex shape)
-        renderBoardBackground();
-
         // Render cells
-        for (var q = -BOARD_RADIUS; q <= BOARD_RADIUS; q++) {
-            for (var r = -BOARD_RADIUS; r <= BOARD_RADIUS; r++) {
+        for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q++) {
+            for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r++) {
                 if (!isValidHex(q, r)) continue;
                 renderCell(q, r);
             }
         }
 
         // Compute move direction from board diff (for animation)
-        var moveDir = null;
-        var newPositions = (gameState && gameState.board) ? gameState.board : {};
+        let moveDir = null;
+        const newPositions = (gameState && gameState.board) ? gameState.board : {};
 
         if (oldBoard) {
             moveDir = detectMoveDirection(oldBoard, newPositions);
@@ -569,19 +538,17 @@
 
         // Render marbles with animation
         if (gameState && gameState.board) {
-            for (var key in newPositions) {
-                var parts = key.split(',');
-                var mq = parseInt(parts[0]);
-                var mr = parseInt(parts[1]);
-                var val = newPositions[key];
+            for (const key in newPositions) {
+                const parts = key.split(',');
+                const mq = parseInt(parts[0], 10);
+                const mr = parseInt(parts[1], 10);
+                const val = newPositions[key];
 
                 if (oldBoard) {
-                    // If same marble was already at this position, no animation
                     if (oldBoard[key] === val) {
                         renderMarble(mq, mr, val);
                         continue;
                     }
-                    // New position for this color — animate from source using direction
                     if (moveDir) {
                         renderMarbleAnimated(mq, mr, val, mq - moveDir.dq, mr - moveDir.dr);
                         continue;
@@ -593,16 +560,14 @@
 
             // Render push-off animations for marbles that left the board
             if (oldBoard && moveDir) {
-                for (var oldKey in oldBoard) {
-                    var oldVal = oldBoard[oldKey];
-                    // Marble was on board before but isn't now (with same color)
+                for (const oldKey in oldBoard) {
+                    const oldVal = oldBoard[oldKey];
                     if (newPositions[oldKey] === oldVal) continue;
-                    // Check it's not just a marble that moved (its position is not a source for any new marble)
-                    var wasMoved = false;
-                    for (var newKey in newPositions) {
+                    let wasMoved = false;
+                    for (const newKey in newPositions) {
                         if (newPositions[newKey] === oldVal && oldBoard[newKey] !== oldVal) {
-                            var np = newKey.split(',');
-                            var srcKey = (parseInt(np[0]) - moveDir.dq) + ',' + (parseInt(np[1]) - moveDir.dr);
+                            const np = newKey.split(',');
+                            const srcKey = (parseInt(np[0], 10) - moveDir.dq) + ',' + (parseInt(np[1], 10) - moveDir.dr);
                             if (srcKey === oldKey) {
                                 wasMoved = true;
                                 break;
@@ -610,17 +575,16 @@
                         }
                     }
                     if (wasMoved) continue;
-                    // This marble was pushed off the board
-                    var oParts = oldKey.split(',');
-                    var oq = parseInt(oParts[0]);
-                    var or_ = parseInt(oParts[1]);
-                    var offPixel = hexToPixel(oq + moveDir.dq, or_ + moveDir.dr);
+                    const oParts = oldKey.split(',');
+                    const oq = parseInt(oParts[0], 10);
+                    const or_ = parseInt(oParts[1], 10);
+                    const offPixel = hexToPixel(oq + moveDir.dq, or_ + moveDir.dr);
                     renderMarblePushOff(oq, or_, offPixel.x, offPixel.y, oldVal);
                 }
             }
         }
 
-        // Always render direction arrows at fixed positions around the board
+        // Render direction arrows near selection
         renderDirectionArrows();
     }
 
@@ -628,18 +592,18 @@
     // Returns {dq, dr} or null if no direction can be determined.
     function detectMoveDirection(oldBoard, newPositions) {
         // Collect new and vacated positions for each color
-        for (var ci = 1; ci <= 2; ci++) {
-            var newPos = [];
-            var vacated = {};
-            var vacatedCount = 0;
+        for (let ci = 1; ci <= 2; ci++) {
+            const newPos = [];
+            const vacated = {};
+            let vacatedCount = 0;
 
-            for (var key in newPositions) {
+            for (const key in newPositions) {
                 if (newPositions[key] === ci && oldBoard[key] !== ci) {
-                    var parts = key.split(',');
-                    newPos.push({ q: parseInt(parts[0]), r: parseInt(parts[1]) });
+                    const parts = key.split(',');
+                    newPos.push({ q: parseInt(parts[0], 10), r: parseInt(parts[1], 10) });
                 }
             }
-            for (var key in oldBoard) {
+            for (const key in oldBoard) {
                 if (oldBoard[key] === ci && newPositions[key] !== ci) {
                     vacated[key] = true;
                     vacatedCount++;
@@ -649,11 +613,11 @@
             if (newPos.length === 0) continue;
 
             // Try each of the 6 directions
-            for (var di = 0; di < DIRECTIONS.length; di++) {
-                var dir = DIRECTIONS[di];
-                var match = true;
-                for (var ni = 0; ni < newPos.length; ni++) {
-                    var srcKey = (newPos[ni].q - dir.dq) + ',' + (newPos[ni].r - dir.dr);
+            for (let di = 0; di < DIRECTIONS.length; di++) {
+                const dir = DIRECTIONS[di];
+                let match = true;
+                for (let ni = 0; ni < newPos.length; ni++) {
+                    const srcKey = (newPos[ni].q - dir.dq) + ',' + (newPos[ni].r - dir.dr);
                     if (!vacated[srcKey]) {
                         match = false;
                         break;
@@ -669,15 +633,15 @@
 
     function renderBoardBackground() {
         // Draw a large hexagonal background
-        var bgSize = HEX_SIZE * (BOARD_RADIUS + 0.8) * Math.sqrt(3);
-        var corners = [];
-        for (var i = 0; i < 6; i++) {
-            var angle = Math.PI / 180 * (60 * i + 30);
+        const bgSize = HEX_SIZE * (BOARD_RADIUS + 0.8) * Math.sqrt(3);
+        const corners = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 180 * (60 * i + 30);
             corners.push(CENTER_X + bgSize * Math.cos(angle) + ',' + (CENTER_Y + bgSize * Math.sin(angle)));
         }
 
         // Glow layer behind the board
-        var glowBg = createSVG('polygon', {
+        const glowBg = createSVG('polygon', {
             points: corners.join(' '),
             fill: '#3a7a22',
             opacity: '0.15',
@@ -685,7 +649,7 @@
         });
         svgBoard.appendChild(glowBg);
 
-        var bg = createSVG('polygon', {
+        const bg = createSVG('polygon', {
             points: corners.join(' '),
             fill: COLOR_BOARD_BG,
             stroke: '#1a3a0a',
@@ -695,20 +659,20 @@
     }
 
     function renderCell(q, r) {
-        var pos = hexToPixel(q, r);
-        var cellSize = HEX_SIZE * 0.88;
-        var cellR = cellSize * 0.62;
+        const pos = hexToPixel(q, r);
+        const cellSize = HEX_SIZE * 0.88;
+        const cellR = cellSize * 0.62;
 
         // Outer rim (lighter edge for 3D pit effect)
-        var rim = createSVG('circle', {
+        const rim = createSVG('circle', {
             cx: pos.x, cy: pos.y - 1, r: cellR,
             fill: '#4a8a2e',
             opacity: '0.5',
         });
-        svgBoard.appendChild(rim);
+        boardDynamic.appendChild(rim);
 
         // Main pit
-        var cell = createSVG('circle', {
+        const cell = createSVG('circle', {
             cx: pos.x,
             cy: pos.y,
             r: cellR,
@@ -724,146 +688,102 @@
             toggleSelection(q, r);
         });
 
-        svgBoard.appendChild(cell);
+        boardDynamic.appendChild(cell);
 
         // Inner shadow (darker center for depth)
-        var innerShadow = createSVG('circle', {
+        const innerShadow = createSVG('circle', {
             cx: pos.x, cy: pos.y + 1, r: cellR * 0.85,
             fill: '#2a5014',
             opacity: '0.4',
             'pointer-events': 'none',
         });
-        svgBoard.appendChild(innerShadow);
+        boardDynamic.appendChild(innerShadow);
+    }
+
+    function createMarbleGroup(px, py, value, selected) {
+        const marbleR = HEX_SIZE * 0.50;
+        const g = createSVG('g', { 'class': 'marble-group' });
+
+        // Selection glow (behind marble)
+        if (selected) {
+            g.appendChild(createSVG('circle', {
+                cx: px, cy: py, r: marbleR + 8,
+                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '6',
+                opacity: '0.3', 'class': 'selection-glow',
+            }));
+            g.appendChild(createSVG('circle', {
+                cx: px, cy: py, r: marbleR + 3,
+                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '2.5',
+                'class': 'selection-ring',
+            }));
+        }
+
+        // Shadow
+        g.appendChild(createSVG('circle', {
+            cx: px + 1, cy: py + 2, r: marbleR,
+            fill: 'rgba(0,0,0,0.3)',
+        }));
+
+        // Marble
+        const isBlack = value === 1;
+        g.appendChild(createSVG('circle', {
+            cx: px, cy: py, r: marbleR,
+            fill: isBlack ? 'url(#grad-black)' : 'url(#grad-white)',
+            stroke: isBlack ? '#111' : '#ccc',
+            'stroke-width': '1',
+            'class': 'marble ' + (isBlack ? 'black' : 'white'),
+        }));
+
+        return g;
+    }
+
+    function isMyInteractiveMarble(value) {
+        return !gameOver && gameState && gameState.turn === myColor &&
+            ((myColor === 'black' && value === 1) || (myColor === 'white' && value === 2));
     }
 
     function renderMarble(q, r, value) {
-        var pos = hexToPixel(q, r);
-        var marbleR = HEX_SIZE * 0.50;
-        var selected = isSelected(q, r);
-        var isInteractive = !gameOver && gameState && gameState.turn === myColor &&
-            ((myColor === 'black' && value === 1) || (myColor === 'white' && value === 2));
+        const pos = hexToPixel(q, r);
+        const selected = isSelected(q, r);
+        const g = createMarbleGroup(pos.x, pos.y, value, selected);
 
-        // Marble group
-        var g = createSVG('g', { 'class': 'marble-group', 'data-q': q, 'data-r': r });
-
-        // Selection glow (drawn first, behind marble)
-        if (selected) {
-            // Outer glow
-            var glow = createSVG('circle', {
-                cx: pos.x, cy: pos.y, r: marbleR + 8,
-                fill: 'none',
-                stroke: COLOR_SELECTED,
-                'stroke-width': '6',
-                opacity: '0.3',
-                'class': 'selection-glow',
+        if (isMyInteractiveMarble(value)) {
+            g.lastChild.classList.add('interactive');
+            g.lastChild.setAttribute('data-q', q);
+            g.lastChild.setAttribute('data-r', r);
+            g.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleSelection(q, r);
             });
-            g.appendChild(glow);
-
-            // Inner ring
-            var ring = createSVG('circle', {
-                cx: pos.x, cy: pos.y, r: marbleR + 3,
-                fill: 'none',
-                stroke: COLOR_SELECTED,
-                'stroke-width': '2.5',
-                'class': 'selection-ring',
-            });
-            g.appendChild(ring);
         }
 
-        // Shadow
-        var shadow = createSVG('circle', {
-            cx: pos.x + 1,
-            cy: pos.y + 2,
-            r: marbleR,
-            fill: 'rgba(0,0,0,0.3)',
-        });
-        g.appendChild(shadow);
-
-        // Marble
-        var gradId = value === 1 ? 'url(#grad-black)' : 'url(#grad-white)';
-        var marble = createSVG('circle', {
-            cx: pos.x,
-            cy: pos.y,
-            r: marbleR,
-            fill: gradId,
-            stroke: value === 1 ? '#111' : '#ccc',
-            'stroke-width': '1',
-            'class': 'marble ' + (value === 1 ? 'black' : 'white') + (isInteractive ? ' interactive' : ''),
-            'data-q': q,
-            'data-r': r,
-        });
-
-        marble.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggleSelection(q, r);
-        });
-
-        g.appendChild(marble);
-        svgBoard.appendChild(g);
+        boardDynamic.appendChild(g);
     }
 
     function renderMarbleAnimated(toQ, toR, value, fromQ, fromR) {
-        var fromPos = hexToPixel(fromQ, fromR);
-        var toPos = hexToPixel(toQ, toR);
-        var marbleR = HEX_SIZE * 0.50;
-        var selected = isSelected(toQ, toR);
-        var isInteractive = !gameOver && gameState && gameState.turn === myColor &&
-            ((myColor === 'black' && value === 1) || (myColor === 'white' && value === 2));
+        const fromPos = hexToPixel(fromQ, fromR);
+        const toPos = hexToPixel(toQ, toR);
+        const selected = isSelected(toQ, toR);
+        const g = createMarbleGroup(toPos.x, toPos.y, value, selected);
 
-        var g = createSVG('g', { 'class': 'marble-group' });
-
-        // Calculate translation
-        var dx = fromPos.x - toPos.x;
-        var dy = fromPos.y - toPos.y;
-
-        // Selection glow
-        if (selected) {
-            var glow = createSVG('circle', {
-                cx: toPos.x, cy: toPos.y, r: marbleR + 8,
-                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '6',
-                opacity: '0.3', 'class': 'selection-glow',
+        if (isMyInteractiveMarble(value)) {
+            g.lastChild.classList.add('interactive');
+            g.lastChild.setAttribute('data-q', toQ);
+            g.lastChild.setAttribute('data-r', toR);
+            g.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleSelection(toQ, toR);
             });
-            g.appendChild(glow);
-
-            var ring = createSVG('circle', {
-                cx: toPos.x, cy: toPos.y, r: marbleR + 3,
-                fill: 'none', stroke: COLOR_SELECTED, 'stroke-width': '2.5',
-                'class': 'selection-ring',
-            });
-            g.appendChild(ring);
         }
 
-        // Shadow
-        var shadow = createSVG('circle', {
-            cx: toPos.x + 1, cy: toPos.y + 2, r: marbleR,
-            fill: 'rgba(0,0,0,0.3)',
-        });
-        g.appendChild(shadow);
-
-        // Marble
-        var gradId = value === 1 ? 'url(#grad-black)' : 'url(#grad-white)';
-        var marble = createSVG('circle', {
-            cx: toPos.x, cy: toPos.y, r: marbleR,
-            fill: gradId,
-            stroke: value === 1 ? '#111' : '#ccc',
-            'stroke-width': '1',
-            'class': 'marble ' + (value === 1 ? 'black' : 'white') + (isInteractive ? ' interactive' : ''),
-            'data-q': toQ, 'data-r': toR,
-        });
-
-        marble.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggleSelection(toQ, toR);
-        });
-        g.appendChild(marble);
-
-        // Apply CSS animation via transform
+        // Animate from old position
+        const dx = fromPos.x - toPos.x;
+        const dy = fromPos.y - toPos.y;
         g.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
         g.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
 
-        svgBoard.appendChild(g);
+        boardDynamic.appendChild(g);
 
-        // Trigger animation on next frame
         requestAnimationFrame(function() {
             requestAnimationFrame(function() {
                 g.style.transform = 'translate(0, 0)';
@@ -872,41 +792,19 @@
     }
 
     function renderMarblePushOff(fromQ, fromR, toPixelX, toPixelY, value) {
-        var fromPos = hexToPixel(fromQ, fromR);
-        var marbleR = HEX_SIZE * 0.50;
+        const fromPos = hexToPixel(fromQ, fromR);
+        const g = createMarbleGroup(fromPos.x, fromPos.y, value, false);
+        g.classList.add('push-off');
 
-        var g = createSVG('g', { 'class': 'marble-group push-off' });
-
-        // Shadow
-        var shadow = createSVG('circle', {
-            cx: fromPos.x + 1, cy: fromPos.y + 2, r: marbleR,
-            fill: 'rgba(0,0,0,0.3)',
-        });
-        g.appendChild(shadow);
-
-        // Marble
-        var gradId = value === 1 ? 'url(#grad-black)' : 'url(#grad-white)';
-        var marble = createSVG('circle', {
-            cx: fromPos.x, cy: fromPos.y, r: marbleR,
-            fill: gradId,
-            stroke: value === 1 ? '#111' : '#ccc',
-            'stroke-width': '1',
-            'class': 'marble ' + (value === 1 ? 'black' : 'white'),
-        });
-        g.appendChild(marble);
-
-        // Start at origin, animate to off-board position with fade + shrink
-        var dx = toPixelX - fromPos.x;
-        var dy = toPixelY - fromPos.y;
-
+        const dx = toPixelX - fromPos.x;
+        const dy = toPixelY - fromPos.y;
         g.style.transform = 'translate(0, 0) scale(1)';
         g.style.opacity = '1';
         g.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease-out';
         g.style.transformOrigin = fromPos.x + 'px ' + fromPos.y + 'px';
 
-        svgBoard.appendChild(g);
+        boardDynamic.appendChild(g);
 
-        // Trigger animation on next frame
         requestAnimationFrame(function() {
             requestAnimationFrame(function() {
                 g.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.3)';
@@ -920,7 +818,7 @@
         if (shiftHeld || selectedMarbles.length === 0) return;
 
         // Compute centroid of selected marbles in hex space
-        var cq = 0, cr = 0;
+        let cq = 0, cr = 0;
         selectedMarbles.forEach(function(m) {
             cq += m.q;
             cr += m.r;
@@ -930,18 +828,18 @@
 
         DIRECTIONS.forEach(function (dir) {
             // Place arrow on the adjacent cell one hex step from the centroid
-            var pos = hexToPixel(cq + dir.dq, cr + dir.dr);
-            var ax = pos.x;
-            var ay = pos.y;
+            const pos = hexToPixel(cq + dir.dq, cr + dir.dr);
+            const ax = pos.x;
+            const ay = pos.y;
 
-            var arrowG = createSVG('g', {
+            const arrowG = createSVG('g', {
                 'class': 'direction-arrow enabled',
                 'data-dq': dir.dq,
                 'data-dr': dir.dr,
             });
 
             // Arrow background circle
-            var bgCircle = createSVG('circle', {
+            const bgCircle = createSVG('circle', {
                 cx: ax,
                 cy: ay,
                 r: 13,
@@ -955,9 +853,9 @@
             arrowG.appendChild(bgCircle);
 
             // Arrow triangle pointing in direction
-            var angleRad = dir.angle * Math.PI / 180;
-            var triPoints = arrowTriangle(ax, ay, angleRad, 7);
-            var tri = createSVG('polygon', {
+            const angleRad = dir.angle * Math.PI / 180;
+            const triPoints = arrowTriangle(ax, ay, angleRad, 7);
+            const tri = createSVG('polygon', {
                 points: triPoints,
                 fill: '#fff',
                 'class': 'arrow-tri',
@@ -978,13 +876,13 @@
                 bgCircle.setAttribute('fill-opacity', '0.85');
             });
 
-            svgBoard.appendChild(arrowG);
+            boardDynamic.appendChild(arrowG);
         });
     }
 
     function arrowTriangle(cx, cy, angleRad, size) {
         // Triangle pointing in the given angle direction
-        var pts = [];
+        const pts = [];
         // Tip
         pts.push(
             (cx + size * Math.cos(angleRad)).toFixed(1) + ',' +
@@ -1008,35 +906,13 @@
     // ---------------------
 
     function createSVG(tag, attrs) {
-        var el = document.createElementNS(SVG_NS, tag);
+        const el = document.createElementNS(SVG_NS, tag);
         if (attrs) {
-            for (var key in attrs) {
+            for (const key in attrs) {
                 el.setAttribute(key, attrs[key]);
             }
         }
         return el;
-    }
-
-    function createRadialGradient(id, colorCenter, colorEdge, fx, fy) {
-        var grad = createSVG('radialGradient', {
-            id: id,
-            cx: '50%',
-            cy: '50%',
-            r: '50%',
-            fx: fx,
-            fy: fy,
-        });
-        var stop1 = createSVG('stop', {
-            offset: '0%',
-            'stop-color': colorCenter,
-        });
-        var stop2 = createSVG('stop', {
-            offset: '100%',
-            'stop-color': colorEdge,
-        });
-        grad.appendChild(stop1);
-        grad.appendChild(stop2);
-        return grad;
     }
 
 })();

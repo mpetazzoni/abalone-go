@@ -414,12 +414,6 @@ html, body {
     transition: opacity 0.25s ease;
 }
 
-.direction-arrow.disabled {
-    opacity: 0.15;
-    pointer-events: none;
-    cursor: default;
-}
-
 .direction-arrow.enabled {
     cursor: pointer;
     opacity: 1;
