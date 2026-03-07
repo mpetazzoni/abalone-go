@@ -47,6 +47,7 @@
     let gameCode = null;
     let gameOver = false;
     let prevCaptured = { black: 0, white: 0 }; // previous captured counts for pulse detection
+    let shiftHeld = false;
     // (animation state is computed locally inside renderBoard)
 
     // SVG dimensions
@@ -54,7 +55,6 @@
     const SVG_HEIGHT = 540;
     const CENTER_X = SVG_WIDTH / 2;
     const CENTER_Y = SVG_HEIGHT / 2;
-    const ARROW_RADIUS = HEX_SIZE * 8.5;
 
     // ---------------------
     // DOM references (set on init)
@@ -122,6 +122,17 @@
                     setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
                 });
             }
+        });
+
+        // Track Shift key for multi-select
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Shift' && !shiftHeld) { shiftHeld = true; renderBoard(); }
+        });
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'Shift') { shiftHeld = false; renderBoard(); }
+        });
+        window.addEventListener('blur', function() {
+            if (shiftHeld) { shiftHeld = false; renderBoard(); }
         });
 
         showScreen('lobby');
@@ -400,37 +411,47 @@
             return;
         }
 
-        // If already selected, deselect
-        if (isSelected(q, r)) {
-            selectedMarbles = selectedMarbles.filter(function (m) {
-                return m.q !== q || m.r !== r;
-            });
-            renderBoard();
-            return;
-        }
-
-        // Try adding to selection
-        var next = selectedMarbles.concat([{ q: q, r: r }]);
-
-        if (next.length === 1) {
-            selectedMarbles = next;
-        } else if (next.length === 2) {
-            if (areAdjacent(next[0], next[1])) {
-                selectedMarbles = next;
+        if (!shiftHeld) {
+            // Plain click: single-select (or deselect if already the only one)
+            if (isSelected(q, r) && selectedMarbles.length === 1) {
+                selectedMarbles = [];
             } else {
-                // Start new selection
-                selectedMarbles = [{ q: q, r: r }];
-            }
-        } else if (next.length === 3) {
-            if (areCollinear(next)) {
-                selectedMarbles = sortMarbles(next);
-            } else {
-                // Start new selection
                 selectedMarbles = [{ q: q, r: r }];
             }
         } else {
-            // Already have 3, start new selection
-            selectedMarbles = [{ q: q, r: r }];
+            // Shift+click: multi-select logic
+            // If already selected, deselect
+            if (isSelected(q, r)) {
+                selectedMarbles = selectedMarbles.filter(function (m) {
+                    return m.q !== q || m.r !== r;
+                });
+                renderBoard();
+                return;
+            }
+
+            // Try adding to selection
+            var next = selectedMarbles.concat([{ q: q, r: r }]);
+
+            if (next.length === 1) {
+                selectedMarbles = next;
+            } else if (next.length === 2) {
+                if (areAdjacent(next[0], next[1])) {
+                    selectedMarbles = next;
+                } else {
+                    // Start new selection
+                    selectedMarbles = [{ q: q, r: r }];
+                }
+            } else if (next.length === 3) {
+                if (areCollinear(next)) {
+                    selectedMarbles = sortMarbles(next);
+                } else {
+                    // Start new selection
+                    selectedMarbles = [{ q: q, r: r }];
+                }
+            } else {
+                // Already have 3, start new selection
+                selectedMarbles = [{ q: q, r: r }];
+            }
         }
 
         renderBoard();
@@ -895,16 +916,26 @@
     }
 
     function renderDirectionArrows() {
-        var enabled = selectedMarbles.length > 0;
+        // Hide arrows during multi-select or when nothing selected
+        if (shiftHeld || selectedMarbles.length === 0) return;
+
+        // Compute centroid of selected marbles in hex space
+        var cq = 0, cr = 0;
+        selectedMarbles.forEach(function(m) {
+            cq += m.q;
+            cr += m.r;
+        });
+        cq /= selectedMarbles.length;
+        cr /= selectedMarbles.length;
 
         DIRECTIONS.forEach(function (dir) {
-            // Fixed position at ARROW_RADIUS from board center
-            var angleRad = dir.angle * Math.PI / 180;
-            var ax = CENTER_X + ARROW_RADIUS * Math.cos(angleRad);
-            var ay = CENTER_Y + ARROW_RADIUS * Math.sin(angleRad);
+            // Place arrow on the adjacent cell one hex step from the centroid
+            var pos = hexToPixel(cq + dir.dq, cr + dir.dr);
+            var ax = pos.x;
+            var ay = pos.y;
 
             var arrowG = createSVG('g', {
-                'class': 'direction-arrow ' + (enabled ? 'enabled' : 'disabled'),
+                'class': 'direction-arrow enabled',
                 'data-dq': dir.dq,
                 'data-dr': dir.dr,
             });
@@ -924,6 +955,7 @@
             arrowG.appendChild(bgCircle);
 
             // Arrow triangle pointing in direction
+            var angleRad = dir.angle * Math.PI / 180;
             var triPoints = arrowTriangle(ax, ay, angleRad, 7);
             var tri = createSVG('polygon', {
                 points: triPoints,
@@ -932,21 +964,19 @@
             });
             arrowG.appendChild(tri);
 
-            if (enabled) {
-                arrowG.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    sendMove(dir.dq, dir.dr);
-                });
+            arrowG.addEventListener('click', function (e) {
+                e.stopPropagation();
+                sendMove(dir.dq, dir.dr);
+            });
 
-                arrowG.addEventListener('mouseenter', function () {
-                    bgCircle.setAttribute('fill', COLOR_ARROW_HOVER);
-                    bgCircle.setAttribute('fill-opacity', '1');
-                });
-                arrowG.addEventListener('mouseleave', function () {
-                    bgCircle.setAttribute('fill', COLOR_ARROW);
-                    bgCircle.setAttribute('fill-opacity', '0.85');
-                });
-            }
+            arrowG.addEventListener('mouseenter', function () {
+                bgCircle.setAttribute('fill', COLOR_ARROW_HOVER);
+                bgCircle.setAttribute('fill-opacity', '1');
+            });
+            arrowG.addEventListener('mouseleave', function () {
+                bgCircle.setAttribute('fill', COLOR_ARROW);
+                bgCircle.setAttribute('fill-opacity', '0.85');
+            });
 
             svgBoard.appendChild(arrowG);
         });

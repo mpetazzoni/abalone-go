@@ -97,7 +97,7 @@ NW = ( 0, -1)    SE = ( 0, +1)
 | 4 | Frontend framework | Vanilla JS | No build step, keep it simple |
 | 5 | Board storage | `map[[2]int]Cell` | Sparse map, natural for hex grids |
 | 6 | Starting position | Standard (not Belgian Daisy) | Classic layout, simplest to implement first |
-| 7 | Marble selection UX | Click marbles → click direction arrow | Explicit, easy to implement; revisit after testing |
+| 7 | Marble selection UX | Click to select, Shift+click for multi-select → direction arrows near selection | Clear single/multi selection, arrows stay close to context |
 | 8 | Frontend embedding | `//go:embed` | Single binary deployment, no external files |
 | 9 | Game codes | Two random words (adjective+noun) | Fun, memorable ("angry-panda", "swift-volcano") |
 | 10 | Git workflow | Commit directly to `main` | Small solo project, no branches/PRs needed for now |
