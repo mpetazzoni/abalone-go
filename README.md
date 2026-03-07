@@ -14,6 +14,10 @@ A web-based implementation of the classic hexagonal marble-pushing strategy boar
 - **SVG hex board** — clean, scalable rendering with click-to-select interaction
 - **Single binary deployment** — frontend is embedded; just run the binary
 
+## 🤖 AI-Built
+
+This project is entirely AI/vibe-coded. Contributions are welcome — and will also be reviewed by AI.
+
 ## Quick Start
 
 ```sh
